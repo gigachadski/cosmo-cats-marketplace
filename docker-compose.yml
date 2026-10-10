@@ -1,0 +1,8 @@
+services:
+  # Third-party Galactic Exchange service, stubbed by WireMock (see wiremock/mappings)
+  exchange-rate-mock:
+    image: wiremock/wiremock:3.13.1
+    ports:
+      - "8089:8080"
+    volumes:
+      - ./wiremock:/home/wiremock

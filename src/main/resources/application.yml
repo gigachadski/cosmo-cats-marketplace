@@ -1,6 +1,18 @@
 spring:
   application:
     name: cosmo-cats-marketplace
+  jackson:
+    mapper:
+      # Jackson 3 sorts properties alphabetically by default; keep declaration order
+      # so problem details read as type, title, status, detail, instance.
+      sort-properties-alphabetically: false
 
 server:
   port: 8080
+
+cosmo:
+  clients:
+    exchange-rate:
+      base-url: http://localhost:8089
+      connect-timeout: 2s
+      read-timeout: 5s
