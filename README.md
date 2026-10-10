@@ -1,4 +1,4 @@
-# Cosmo Cats Intergalactic Marketplace 🐱🚀
+# Cosmo Cats Intergalactic Marketplace 
 
 Бекенд платформи **Cosmo Cats Intergalactic Marketplace** — лабораторна робота 1
 «Створення контракту API для інтергалактичного ринку».
