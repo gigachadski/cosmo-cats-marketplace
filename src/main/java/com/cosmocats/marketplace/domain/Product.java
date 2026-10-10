@@ -1,71 +1,31 @@
 package com.cosmocats.marketplace.domain;
 
-public class Product {
+import java.math.BigDecimal;
+import java.util.Objects;
 
-    public Long id;
-    public String name;
-    public String description;
-    public Double price;
-    public String category;
-    public String sellerEmail;
+/**
+ * Product aggregate root. Immutable: every change produces a new instance,
+ * and invariants are checked once in the canonical constructor.
+ */
+public record Product(
+        Long id,
+        String name,
+        String description,
+        BigDecimal price,
+        Category category,
+        String sellerEmail) {
 
-    public Product() {
+    public Product {
+        Objects.requireNonNull(name, "Product name must not be null");
+        Objects.requireNonNull(price, "Product price must not be null");
+        Objects.requireNonNull(category, "Product category must not be null");
+        Objects.requireNonNull(sellerEmail, "Seller email must not be null");
+        if (price.signum() <= 0) {
+            throw new IllegalArgumentException("Product price must be positive");
+        }
     }
 
-    public Product(Long id, String name, String description, Double price, String category, String sellerEmail) {
-        this.id = id;
-        this.name = name;
-        this.description = description;
-        this.price = price;
-        this.category = category;
-        this.sellerEmail = sellerEmail;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public Double getPrice() {
-        return price;
-    }
-
-    public void setPrice(Double price) {
-        this.price = price;
-    }
-
-    public String getCategory() {
-        return category;
-    }
-
-    public void setCategory(String category) {
-        this.category = category;
-    }
-
-    public String getSellerEmail() {
-        return sellerEmail;
-    }
-
-    public void setSellerEmail(String sellerEmail) {
-        this.sellerEmail = sellerEmail;
+    public Product withId(Long newId) {
+        return new Product(newId, name, description, price, category, sellerEmail);
     }
 }
