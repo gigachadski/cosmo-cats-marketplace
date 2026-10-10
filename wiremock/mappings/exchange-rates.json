@@ -1,0 +1,25 @@
+{
+  "mappings": [
+    {
+      "request": { "method": "GET", "url": "/api/v1/rates/EUR" },
+      "response": {
+        "status": 200,
+        "headers": { "Content-Type": "application/json" },
+        "jsonBody": { "currency": "EUR", "rate": 0.92 }
+      }
+    },
+    {
+      "request": { "method": "GET", "url": "/api/v1/rates/UAH" },
+      "response": {
+        "status": 200,
+        "headers": { "Content-Type": "application/json" },
+        "jsonBody": { "currency": "UAH", "rate": 41.50 }
+      }
+    },
+    {
+      "priority": 10,
+      "request": { "method": "GET", "urlPathPattern": "/api/v1/rates/.*" },
+      "response": { "status": 404 }
+    }
+  ]
+}
