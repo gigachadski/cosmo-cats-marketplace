@@ -8,11 +8,13 @@ import com.cosmocats.marketplace.dto.ProductResponseDto;
 import com.cosmocats.marketplace.exception.CategoryNotFoundException;
 import com.cosmocats.marketplace.exception.ExternalServiceException;
 import com.cosmocats.marketplace.exception.ProductNotFoundException;
+import com.cosmocats.marketplace.exception.UnsupportedCurrencyException;
 import com.cosmocats.marketplace.service.ProductService;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,9 +23,12 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.math.BigDecimal;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 import static org.hamcrest.Matchers.contains;
@@ -33,6 +38,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -65,25 +71,23 @@ class ProductControllerTest {
     @MockitoBean
     private ProductService productService;
 
+    private static final JsonMapper JSON = JsonMapper.builder().build();
+
     /** Builds a request body; {@code null} leaves the field out. */
     private static String body(String name, String description, String price, String categoryId, String email) {
-        StringBuilder json = new StringBuilder("{");
-        append(json, "name", name == null ? null : "\"" + name + "\"");
-        append(json, "description", description == null ? null : "\"" + description + "\"");
-        append(json, "price", price);
-        append(json, "categoryId", categoryId);
-        append(json, "sellerEmail", email == null ? null : "\"" + email + "\"");
-        return json.append("}").toString();
+        Map<String, Object> fields = new LinkedHashMap<>();
+        putIfPresent(fields, "name", name);
+        putIfPresent(fields, "description", description);
+        putIfPresent(fields, "price", price == null ? null : new BigDecimal(price));
+        putIfPresent(fields, "categoryId", categoryId == null ? null : Long.valueOf(categoryId));
+        putIfPresent(fields, "sellerEmail", email);
+        return JSON.writeValueAsString(fields);
     }
 
-    private static void append(StringBuilder json, String field, String value) {
-        if (value == null) {
-            return;
+    private static void putIfPresent(Map<String, Object> fields, String field, Object value) {
+        if (value != null) {
+            fields.put(field, value);
         }
-        if (json.length() > 1) {
-            json.append(',');
-        }
-        json.append('"').append(field).append("\":").append(value);
     }
 
     private static String validBody() {
@@ -166,7 +170,55 @@ class ProductControllerTest {
                     Arguments.of("missing email", body("Star Tuna", null, "1", "1", null),
                             "sellerEmail", "is required"),
                     Arguments.of("invalid email", body("Star Tuna", null, "1", "1", "not-an-email"),
-                            "sellerEmail", "must be a valid email address"));
+                            "sellerEmail", "must be a valid email address"),
+                    Arguments.of("empty email", body("Star Tuna", null, "1", "1", ""),
+                            "sellerEmail", "is required"),
+                    Arguments.of("price with 11 integer digits", body("Star Tuna", null, "10000000000", "1", "a@b.space"),
+                            "price", "must have at most 10 integer digits and 2 decimal places"));
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("boundaryProducts")
+        void valuesExactlyOnTheLimitsAreAccepted(String scenario, String json) throws Exception {
+            when(productService.createProduct(any())).thenReturn(GALAXY_MILK);
+
+            postProduct(json).andExpect(status().isCreated());
+        }
+
+        static Stream<Arguments> boundaryProducts() {
+            return Stream.of(
+                    Arguments.of("name of 100 characters", body("Star " + "x".repeat(95), null, "1", "1", "a@b.space")),
+                    Arguments.of("description of 500 characters", body("Star", "x".repeat(500), "1", "1", "a@b.space")),
+                    Arguments.of("smallest price 0.01", body("Star", null, "0.01", "1", "a@b.space")),
+                    Arguments.of("largest price 9999999999.99", body("Star", null, "9999999999.99", "1", "a@b.space")));
+        }
+
+        @Test
+        void wrongJsonTypeIsReportedAsValidationErrorOfThatField() throws Exception {
+            String json = "{\"name\": \"Star Tuna\", \"price\": \"abc\", \"categoryId\": 1, \"sellerEmail\": \"a@b.space\"}";
+
+            expectProblem(postProduct(json), 400, "validation", PRODUCTS)
+                    .andExpect(jsonPath("$.detail").value("Field 'price' must be a number."))
+                    .andExpect(jsonPath("$.errors[0].field").value("price"));
+            verifyNoInteractions(productService);
+        }
+
+        @Test
+        void textWhereNumberIsExpectedInCategoryIdIsReported() throws Exception {
+            String json = "{\"name\": \"Star Tuna\", \"price\": 1, \"categoryId\": \"food\", \"sellerEmail\": \"a@b.space\"}";
+
+            expectProblem(postProduct(json), 400, "validation", PRODUCTS)
+                    .andExpect(jsonPath("$.errors[0].field").value("categoryId"))
+                    .andExpect(jsonPath("$.errors[0].message").value("must be a number"));
+        }
+
+        @Test
+        void objectWhereStringIsExpectedIsReported() throws Exception {
+            String json = "{\"name\": {\"en\": \"Star\"}, \"price\": 1, \"categoryId\": 1, \"sellerEmail\": \"a@b.space\"}";
+
+            expectProblem(postProduct(json), 400, "validation", PRODUCTS)
+                    .andExpect(jsonPath("$.errors[0].field").value("name"))
+                    .andExpect(jsonPath("$.errors[0].message").value("must be a string"));
         }
 
         @ParameterizedTest(name = "{0}")
@@ -188,7 +240,7 @@ class ProductControllerTest {
             // no cosmic word is shorter than 3 letters, so both constraints fire
             expectProblem(postProduct(body("St", null, "1", "1", "a@b.space")), 400, "validation", PRODUCTS)
                     .andExpect(jsonPath("$.errors", hasSize(2)))
-                    .andExpect(jsonPath("$.errors[*].message").value(org.hamcrest.Matchers.containsInAnyOrder(
+                    .andExpect(jsonPath("$.errors[*].message").value(contains(
                             "must be between 3 and 100 characters",
                             "must contain a cosmic word (e.g. star, galaxy, comet)")));
         }
@@ -246,7 +298,7 @@ class ProductControllerTest {
         }
 
         @ParameterizedTest(name = "page={0}, size={1}")
-        @org.junit.jupiter.params.provider.CsvSource({"0,1", "3,100"})
+        @CsvSource({"0,1", "3,100"})
         void boundaryValuesAreAccepted(int page, int size) throws Exception {
             when(productService.getProducts(page, size)).thenReturn(new PageResponse<>(List.of(), page, size, 0));
 
@@ -255,7 +307,7 @@ class ProductControllerTest {
         }
 
         @ParameterizedTest(name = "page={0}, size={1} -> {2}")
-        @org.junit.jupiter.params.provider.CsvSource({
+        @CsvSource({
                 "-1, 10, page, must not be negative",
                 "0, 0, size, must be at least 1",
                 "0, 101, size, must be at most 100"})
@@ -265,7 +317,7 @@ class ProductControllerTest {
                     .andExpect(jsonPath("$.errors[0].field").value(field))
                     .andExpect(jsonPath("$.errors[0].message").value(message));
 
-            verify(productService, org.mockito.Mockito.never()).getProducts(anyInt(), anyInt());
+            verify(productService, never()).getProducts(anyInt(), anyInt());
         }
 
         @Test
@@ -387,6 +439,15 @@ class ProductControllerTest {
         @Test
         void missingCurrencyIsBadRequest() throws Exception {
             expectProblem(mockMvc.perform(get(PRODUCTS + "/6/price")), 400, "bad-request", PRODUCTS + "/6/price");
+        }
+
+        @Test
+        void unknownCurrencyIsUnprocessable() throws Exception {
+            when(productService.convertPrice(6L, "XYZ")).thenThrow(new UnsupportedCurrencyException("XYZ"));
+
+            expectProblem(mockMvc.perform(get(PRODUCTS + "/6/price").param("currency", "XYZ")),
+                    422, "unsupported-currency", PRODUCTS + "/6/price")
+                    .andExpect(jsonPath("$.detail").value("Currency XYZ is not supported by the exchange rate service"));
         }
 
         @Test

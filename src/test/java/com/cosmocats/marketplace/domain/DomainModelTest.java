@@ -79,6 +79,14 @@ class DomainModelTest {
         }
 
         @Test
+        void addingNonPositiveQuantityIsRejectedEvenForProductAlreadyInCart() {
+            Cart cart = Cart.empty(1L, CUSTOMER).addProduct(TUNA, 2);
+
+            assertThatThrownBy(() -> cart.addProduct(TUNA, -1)).isInstanceOf(IllegalArgumentException.class);
+            assertThatThrownBy(() -> cart.addProduct(CATNIP, 0)).isInstanceOf(IllegalArgumentException.class);
+        }
+
+        @Test
         void removeProductDropsOnlyThatProduct() {
             Cart cart = Cart.empty(1L, CUSTOMER).addProduct(TUNA, 1).addProduct(CATNIP, 1).removeProduct(1L);
 

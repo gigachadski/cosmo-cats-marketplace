@@ -4,18 +4,24 @@ import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 
 import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
+/**
+ * A cosmic word must start a word of the value: "Starlight" and "Galaxy-Yarn" pass,
+ * but "Mustard" (contains "star") and "Workspace" (contains "space") do not.
+ */
 public class CosmicWordCheckValidator implements ConstraintValidator<CosmicWordCheck, String> {
 
-    private List<String> cosmicWords;
+    private Pattern cosmicWordAtWordStart;
 
     @Override
     public void initialize(CosmicWordCheck annotation) {
-        cosmicWords = Arrays.stream(annotation.words())
-                .map(word -> word.toLowerCase(Locale.ROOT))
-                .toList();
+        String alternatives = Arrays.stream(annotation.words())
+                .map(Pattern::quote)
+                .collect(Collectors.joining("|"));
+        cosmicWordAtWordStart = Pattern.compile("\\b(?:" + alternatives + ")",
+                Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
     }
 
     @Override
@@ -23,7 +29,6 @@ public class CosmicWordCheckValidator implements ConstraintValidator<CosmicWordC
         if (value == null) {
             return true;
         }
-        String normalized = value.toLowerCase(Locale.ROOT);
-        return cosmicWords.stream().anyMatch(normalized::contains);
+        return cosmicWordAtWordStart.matcher(value).find();
     }
 }

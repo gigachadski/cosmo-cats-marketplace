@@ -30,7 +30,6 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -158,15 +157,16 @@ class ProductServiceTest {
         void replacesExistingProductKeepingItsId() {
             when(productRepository.existsById(1L)).thenReturn(true);
             when(categoryRepository.findById(1L)).thenReturn(Optional.of(FOOD));
-            when(productRepository.save(any(Product.class))).thenAnswer(inv -> inv.getArgument(0));
+            when(productRepository.update(any(Product.class))).thenAnswer(inv -> Optional.of(inv.getArgument(0)));
 
             ProductResponseDto result = productService.updateProduct(1L, REQUEST);
 
-            ArgumentCaptor<Product> saved = ArgumentCaptor.forClass(Product.class);
-            verify(productRepository).save(saved.capture());
-            assertThat(saved.getValue().id()).isEqualTo(1L);
+            ArgumentCaptor<Product> updated = ArgumentCaptor.forClass(Product.class);
+            verify(productRepository).update(updated.capture());
+            assertThat(updated.getValue().id()).isEqualTo(1L);
             assertThat(result.id()).isEqualTo(1L);
             assertThat(result.name()).isEqualTo("Galaxy Milk");
+            verify(productRepository, never()).save(any());
         }
 
         @Test
@@ -175,8 +175,20 @@ class ProductServiceTest {
 
             assertThatThrownBy(() -> productService.updateProduct(99L, REQUEST))
                     .isInstanceOf(ProductNotFoundException.class);
+            verify(productRepository, never()).update(any());
             verify(productRepository, never()).save(any());
             verifyNoInteractions(categoryRepository);
+        }
+
+        @Test
+        void productDeletedConcurrentlyIsNotResurrected() {
+            when(productRepository.existsById(1L)).thenReturn(true);
+            when(categoryRepository.findById(1L)).thenReturn(Optional.of(FOOD));
+            when(productRepository.update(any(Product.class))).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> productService.updateProduct(1L, REQUEST))
+                    .isInstanceOf(ProductNotFoundException.class);
+            verify(productRepository, never()).save(any());
         }
 
         @Test
@@ -186,7 +198,7 @@ class ProductServiceTest {
 
             assertThatThrownBy(() -> productService.updateProduct(1L, REQUEST))
                     .isInstanceOf(CategoryNotFoundException.class);
-            verify(productRepository, never()).save(any());
+            verify(productRepository, never()).update(any());
         }
     }
 
@@ -195,7 +207,7 @@ class ProductServiceTest {
 
         @Test
         void deletesExistingProduct() {
-            when(productRepository.existsById(1L)).thenReturn(true);
+            when(productRepository.deleteById(1L)).thenReturn(true);
 
             productService.deleteProduct(1L);
 
@@ -204,11 +216,10 @@ class ProductServiceTest {
 
         @Test
         void missingProductThrowsNotFound() {
-            when(productRepository.existsById(99L)).thenReturn(false);
+            when(productRepository.deleteById(99L)).thenReturn(false);
 
             assertThatThrownBy(() -> productService.deleteProduct(99L))
                     .isInstanceOf(ProductNotFoundException.class);
-            verify(productRepository, never()).deleteById(anyLong());
         }
     }
 

@@ -18,7 +18,8 @@ ext {
     // Minimal Coverage
     minimumCoveragePerFile = 0.8
     filesExcludedFromCoverage = [
-            "**/*MarketplaceApplication.*"
+            "**/*MarketplaceApplication.*",
+            "**/*MapperImpl.*"
     ]
     mapstructVersion = '1.6.3'
     wiremockVersion = '3.13.1'

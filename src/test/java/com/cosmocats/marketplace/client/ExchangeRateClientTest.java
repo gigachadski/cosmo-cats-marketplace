@@ -1,11 +1,14 @@
 package com.cosmocats.marketplace.client;
 
 import com.cosmocats.marketplace.exception.ExternalServiceException;
+import com.cosmocats.marketplace.exception.UnsupportedCurrencyException;
 import com.github.tomakehurst.wiremock.http.Fault;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.web.client.RestClient;
 
 import java.math.BigDecimal;
@@ -60,12 +63,42 @@ class ExchangeRateClientTest {
     }
 
     @Test
-    void unknownCurrencyBecomesExternalServiceException() {
+    void unknownCurrencyIsReportedAsUnsupported() {
         exchangeService.stubFor(get(urlEqualTo("/api/v1/rates/XYZ")).willReturn(aResponse().withStatus(404)));
 
         assertThatThrownBy(() -> client.getRate("XYZ"))
+                .isInstanceOf(UnsupportedCurrencyException.class)
+                .hasMessage("Currency XYZ is not supported by the exchange rate service");
+    }
+
+    @Test
+    void otherClientErrorBecomesExternalServiceException() {
+        exchangeService.stubFor(get(urlEqualTo("/api/v1/rates/EUR")).willReturn(aResponse().withStatus(401)));
+
+        assertThatThrownBy(() -> client.getRate("EUR"))
                 .isInstanceOf(ExternalServiceException.class)
-                .hasMessageContaining("404");
+                .hasMessage("Exchange rate service responded with status 401");
+    }
+
+    @Test
+    void nonJsonBodyBecomesExternalServiceException() {
+        exchangeService.stubFor(get(urlEqualTo("/api/v1/rates/EUR"))
+                .willReturn(aResponse().withStatus(200).withHeader("Content-Type", "application/json").withBody("<html>oops</html>")));
+
+        assertThatThrownBy(() -> client.getRate("EUR"))
+                .isInstanceOf(ExternalServiceException.class)
+                .hasMessage("Exchange rate service returned an unreadable response");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"0", "-1.5"})
+    void nonPositiveRateIsRejected(String rate) {
+        exchangeService.stubFor(get(urlEqualTo("/api/v1/rates/EUR"))
+                .willReturn(okJson("{\"currency\": \"EUR\", \"rate\": " + rate + "}")));
+
+        assertThatThrownBy(() -> client.getRate("EUR"))
+                .isInstanceOf(ExternalServiceException.class)
+                .hasMessage("Exchange rate service returned a non-positive rate for EUR");
     }
 
     @Test

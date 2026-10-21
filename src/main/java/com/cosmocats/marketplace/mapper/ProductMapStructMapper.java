@@ -21,6 +21,7 @@ public interface ProductMapStructMapper {
     CategoryDto toDto(Category category);
 
     @Mapping(target = "id", ignore = true)
+    // Product.withId(..) looks like a fluent setter to MapStruct; it is a domain method, not a property
     @Mapping(target = "withId", ignore = true)
     @Mapping(target = "name", source = "dto.name")
     @Mapping(target = "category", source = "category")

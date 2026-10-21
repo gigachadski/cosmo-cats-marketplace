@@ -1,5 +1,6 @@
 package com.cosmocats.marketplace;
 
+import com.github.tomakehurst.wiremock.client.WireMock;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -62,7 +63,7 @@ class ProductApiIT extends AbstractIt {
 
     @Test
     void priceIsConvertedWithRateFromStubbedService() throws Exception {
-        exchangeService.stubFor(com.github.tomakehurst.wiremock.client.WireMock.get(urlEqualTo("/api/v1/rates/UAH"))
+        exchangeService.stubFor(WireMock.get(urlEqualTo("/api/v1/rates/UAH"))
                 .willReturn(okJson("{\"currency\": \"UAH\", \"rate\": 41.50}")));
 
         mockMvc.perform(get(PRODUCTS + "/1/price").param("currency", "UAH"))
@@ -74,8 +75,18 @@ class ProductApiIT extends AbstractIt {
     }
 
     @Test
+    void currencyUnknownToExchangeServiceIsUnprocessable() throws Exception {
+        exchangeService.stubFor(WireMock.get(urlEqualTo("/api/v1/rates/XYZ"))
+                .willReturn(aResponse().withStatus(404)));
+
+        mockMvc.perform(get(PRODUCTS + "/1/price").param("currency", "XYZ"))
+                .andExpect(status().is(422))
+                .andExpect(jsonPath("$.type").value("https://cosmo-cats.market/errors/unsupported-currency"));
+    }
+
+    @Test
     void exchangeServiceOutageIsBadGateway() throws Exception {
-        exchangeService.stubFor(com.github.tomakehurst.wiremock.client.WireMock.get(urlEqualTo("/api/v1/rates/EUR"))
+        exchangeService.stubFor(WireMock.get(urlEqualTo("/api/v1/rates/EUR"))
                 .willReturn(aResponse().withStatus(500)));
 
         mockMvc.perform(get(PRODUCTS + "/1/price").param("currency", "EUR"))

@@ -34,13 +34,13 @@ class CosmicWordCheckValidatorTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"Star Tuna", "GALAXY yarn", "Comet post", "Starlight Bed", "Nebula catnip", "space milk"})
+    @ValueSource(strings = {"Star Tuna", "GALAXY yarn", "Comet post", "Starlight Bed", "Nebula catnip", "space milk", "Galaxy-Yarn", "Super (moon) lamp"})
     void acceptsNamesWithCosmicWords(String name) {
         assertThat(validator.validate(new Named(name))).isEmpty();
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"Tuna Can", "Yarn Ball", "Scratching Post", ""})
+    @ValueSource(strings = {"Tuna Can", "Yarn Ball", "Scratching Post", "", "Mustard", "Workspace Chair", "Restart Button"})
     void rejectsNamesWithoutCosmicWords(String name) {
         assertThat(validator.validate(new Named(name)))
                 .singleElement()

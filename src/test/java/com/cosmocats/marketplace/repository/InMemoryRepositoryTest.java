@@ -53,10 +53,21 @@ class InMemoryRepositoryTest {
 
     @Test
     void idsAreNotReusedAfterDelete() {
-        productRepository.deleteById(5L);
+        assertThat(productRepository.deleteById(5L)).isTrue();
+        assertThat(productRepository.deleteById(5L)).as("second delete finds nothing").isFalse();
 
         assertThat(productRepository.existsById(5L)).isFalse();
         assertThat(productRepository.save(newProduct("Comet Snack")).id()).isEqualTo(6L);
+    }
+
+    @Test
+    void updateReplacesOnlyExistingProduct() {
+        assertThat(productRepository.update(newProduct("Star Renamed").withId(2L)))
+                .get().extracting(Product::name).isEqualTo("Star Renamed");
+        assertThat(productRepository.findById(2L)).get().extracting(Product::name).isEqualTo("Star Renamed");
+
+        assertThat(productRepository.update(newProduct("Ghost Star").withId(99L))).isEmpty();
+        assertThat(productRepository.existsById(99L)).as("update never creates").isFalse();
     }
 
     @Test

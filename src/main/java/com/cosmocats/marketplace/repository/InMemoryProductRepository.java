@@ -70,7 +70,13 @@ public class InMemoryProductRepository implements ProductRepository {
     }
 
     @Override
-    public void deleteById(Long id) {
-        storage.remove(id);
+    public Optional<Product> update(Product product) {
+        // atomic: a concurrent delete cannot be undone by this update
+        return Optional.ofNullable(storage.computeIfPresent(product.id(), (id, existing) -> product));
+    }
+
+    @Override
+    public boolean deleteById(Long id) {
+        return storage.remove(id) != null;
     }
 }

@@ -63,15 +63,15 @@ public class ProductService {
             throw new ProductNotFoundException(id);
         }
         Product updated = productMapper.toDomain(request, findCategory(request.categoryId())).withId(id);
+        Product saved = productRepository.update(updated).orElseThrow(() -> new ProductNotFoundException(id));
         log.info("Updated product id={}", id);
-        return productMapper.toDto(productRepository.save(updated));
+        return productMapper.toDto(saved);
     }
 
     public void deleteProduct(Long id) {
-        if (!productRepository.existsById(id)) {
+        if (!productRepository.deleteById(id)) {
             throw new ProductNotFoundException(id);
         }
-        productRepository.deleteById(id);
         log.info("Deleted product id={}", id);
     }
 
