@@ -21,6 +21,7 @@ public interface ProductMapStructMapper {
     CategoryDto toDto(Category category);
 
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "withId", ignore = true)
     @Mapping(target = "name", source = "dto.name")
     @Mapping(target = "category", source = "category")
     Product toDomain(ProductRequestDto dto, Category category);

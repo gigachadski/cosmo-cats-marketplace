@@ -1,18 +1,29 @@
 # Cosmo Cats Intergalactic Marketplace 🐱🚀
 
-Бекенд платформи **Cosmo Cats Intergalactic Marketplace** — лабораторна робота 1
-«Створення контракту API для інтергалактичного ринку».
+Бекенд платформи **Cosmo Cats Intergalactic Marketplace** — лабораторні роботи 1 (контракт API)
+і 2 (тестування).
 
 ## Стек
 
 - Java 21, Spring Boot 4.1
-- Maven (wrapper `mvnw`)
+- Gradle 9 (wrapper `gradlew`), JaCoCo
 
 ## Запуск
 
 ```bash
-./mvnw spring-boot:run
+./gradlew bootRun
 ```
+
+## Тести
+
+```bash
+./gradlew build
+```
+
+- `test` — юніт-тести: сервіс (Mockito), контролер (`@WebMvcTest`, валідація: позитивні й негативні сценарії), домен, маппери, валідатор, репозиторії, RestClient зі stubbing WireMock.
+- `integrationTest` — тонкі інтеграційні тести `*IT` на всьому контексті з WireMock замість стороннього сервісу.
+- JaCoCo: звіт у `build/reports/coverage/index.html`; збірка падає, якщо будь-який файл має покриття рядків менше 80%.
+- GitHub Actions (`.github/workflows/pull_request.yml`) запускає `./gradlew build` на кожен pull request.
 
 ## Сторонній сервіс курсів (WireMock)
 
@@ -75,3 +86,4 @@ web/          ProductController, GlobalExceptionHandler (RFC 9457)
 | `main`       | Базовий каркас застосунку                                     |
 | `lab1-draft` | Первинна версія з типовими code smells (PR1 → `main`, draft)  |
 | `lab1-fixes` | Виправлення за self-review (PR2 → `lab1-draft`)               |
+| `lab2`       | Тести, Gradle, JaCoCo, GitHub Actions (PR → `lab1-fixes`)       |
