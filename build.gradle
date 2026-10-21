@@ -1,0 +1,46 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '4.1.1'
+    id 'io.spring.dependency-management' version '1.1.7'
+    id 'org.barfuin.gradle.jacocolog' version '4.0.3'
+}
+
+group = 'com.cosmocats'
+version = '0.0.1-SNAPSHOT'
+description = 'Cosmo Cats Intergalactic Marketplace'
+
+tasks.withType(JavaCompile).configureEach {
+    options.release = 21
+    options.encoding = 'UTF-8'
+}
+
+ext {
+    // Minimal Coverage
+    minimumCoveragePerFile = 0.8
+    filesExcludedFromCoverage = [
+            "**/*MarketplaceApplication.*",
+            "**/*MapperImpl.*"
+    ]
+    mapstructVersion = '1.6.3'
+    wiremockVersion = '3.13.1'
+}
+
+repositories {
+    mavenCentral()
+}
+
+apply from: "${rootProject.projectDir}/gradle/test.gradle"
+apply from: "${rootProject.projectDir}/gradle/jacoco.gradle"
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-restclient'
+    implementation "org.mapstruct:mapstruct:${mapstructVersion}"
+    annotationProcessor "org.mapstruct:mapstruct-processor:${mapstructVersion}"
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+    testImplementation "org.wiremock:wiremock-standalone:${wiremockVersion}"
+    testAnnotationProcessor "org.mapstruct:mapstruct-processor:${mapstructVersion}"
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}

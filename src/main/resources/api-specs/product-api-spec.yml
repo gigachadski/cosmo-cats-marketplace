@@ -149,8 +149,12 @@ paths:
           $ref: "#/components/responses/ValidationError"
         "404":
           $ref: "#/components/responses/ProductNotFound"
+        "422":
+          $ref: "#/components/responses/UnsupportedCurrency"
         "502":
           $ref: "#/components/responses/ExternalServiceError"
+        "500":
+          $ref: "#/components/responses/InternalError"
 
 components:
   parameters:
@@ -162,7 +166,6 @@ components:
       schema:
         type: integer
         format: int64
-        minimum: 1
     Page:
       name: page
       in: query
@@ -218,6 +221,7 @@ components:
         sellerEmail:
           type: string
           format: email
+          minLength: 1
           example: tuna@cosmocats.space
 
     ProductResponse:
@@ -364,7 +368,11 @@ components:
 
   responses:
     ValidationError:
-      description: Request body or parameters are invalid, or the JSON is malformed
+      description: |
+        Request is invalid. Field and parameter constraint violations, and JSON values of the
+        wrong type (e.g. "price": "abc"), use type `validation` with the `errors` list.
+        Broken JSON uses type `malformed-request`; a missing or non-numeric path/query parameter
+        uses type `bad-request`; both come without `errors`.
       content:
         application/problem+json:
           schema:
@@ -387,6 +395,18 @@ components:
             status: 422
             detail: Category with id 42 does not exist
             instance: /api/v1/products
+    UnsupportedCurrency:
+      description: The exchange rate service does not know the requested currency
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetail"
+          example:
+            type: https://cosmo-cats.market/errors/unsupported-currency
+            title: Unsupported currency
+            status: 422
+            detail: Currency XYZ is not supported by the exchange rate service
+            instance: /api/v1/products/1/price
     ExternalServiceError:
       description: The exchange rate service failed
       content:

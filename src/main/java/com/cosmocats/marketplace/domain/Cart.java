@@ -22,6 +22,9 @@ public record Cart(Long id, String customerEmail, List<CartItem> items) {
     }
 
     public Cart addProduct(Product product, int quantity) {
+        if (quantity <= 0) {
+            throw new IllegalArgumentException("Quantity must be positive");
+        }
         List<CartItem> updated = new ArrayList<>();
         boolean merged = false;
         for (CartItem item : items) {

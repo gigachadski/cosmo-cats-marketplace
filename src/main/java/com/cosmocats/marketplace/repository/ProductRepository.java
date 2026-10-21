@@ -19,5 +19,9 @@ public interface ProductRepository {
 
     boolean existsById(Long id);
 
-    void deleteById(Long id);
+    /** Replaces the product with the same id; empty if it does not exist (never creates one). */
+    Optional<Product> update(Product product);
+
+    /** Deletes the product and reports whether it existed. */
+    boolean deleteById(Long id);
 }

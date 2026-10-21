@@ -3,6 +3,7 @@ package com.cosmocats.marketplace.web;
 import com.cosmocats.marketplace.exception.CategoryNotFoundException;
 import com.cosmocats.marketplace.exception.ExternalServiceException;
 import com.cosmocats.marketplace.exception.ProductNotFoundException;
+import com.cosmocats.marketplace.exception.UnsupportedCurrencyException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +22,8 @@ import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.exc.MismatchedInputException;
 
 import java.net.URI;
 import java.util.Comparator;
@@ -75,6 +78,12 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 ex.getMessage(), request);
     }
 
+    @ExceptionHandler(UnsupportedCurrencyException.class)
+    public ProblemDetail handleUnsupportedCurrency(UnsupportedCurrencyException ex, HttpServletRequest request) {
+        return problem(HttpStatus.UNPROCESSABLE_CONTENT, "unsupported-currency", "Unsupported currency",
+                ex.getMessage(), request);
+    }
+
     @ExceptionHandler(ExternalServiceException.class)
     public ProblemDetail handleExternalService(ExternalServiceException ex, HttpServletRequest request) {
         log.warn("External service failure: {}", ex.getMessage());
@@ -94,6 +103,11 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                                                                   HttpHeaders headers,
                                                                   HttpStatusCode status,
                                                                   WebRequest request) {
+        // Syntactically valid JSON with a value of the wrong type (e.g. "price": "abc"):
+        // report it as a validation error of that field, not as broken JSON.
+        if (ex.getCause() instanceof MismatchedInputException mismatch && !mismatch.getPath().isEmpty()) {
+            return validationProblem(List.of(new FieldViolation(jsonPath(mismatch), typeMessage(mismatch))), request);
+        }
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST,
                 "Request body is missing or is not valid JSON.");
         problem.setType(URI.create(PROBLEM_BASE_URI + "malformed-request"));
@@ -128,7 +142,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     private ResponseEntity<Object> validationProblem(List<FieldViolation> unsorted, WebRequest request) {
         List<FieldViolation> violations = unsorted.stream()
-                .sorted(Comparator.comparing(FieldViolation::field))
+                .sorted(Comparator.comparing(FieldViolation::field).thenComparing(FieldViolation::message))
                 .toList();
         String detail = violations.stream()
                 .map(violation -> "Field '" + violation.field() + "' " + violation.message() + ".")
@@ -151,9 +165,31 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     private static String requestUri(WebRequest request) {
-        return request instanceof ServletWebRequest servletRequest
-                ? servletRequest.getRequest().getRequestURI()
-                : request.getDescription(false).replace("uri=", "");
+        // Spring MVC always passes a ServletWebRequest to ResponseEntityExceptionHandler
+        return ((ServletWebRequest) request).getRequest().getRequestURI();
+    }
+
+    private static String jsonPath(MismatchedInputException ex) {
+        StringBuilder path = new StringBuilder();
+        for (JacksonException.Reference reference : ex.getPath()) {
+            if (reference.getPropertyName() != null) {
+                path.append(path.isEmpty() ? "" : ".").append(reference.getPropertyName());
+            } else {
+                path.append('[').append(reference.getIndex()).append(']');
+            }
+        }
+        return path.toString();
+    }
+
+    private static String typeMessage(MismatchedInputException ex) {
+        Class<?> target = ex.getTargetType();
+        if (target != null && (Number.class.isAssignableFrom(target) || (target.isPrimitive() && target != boolean.class))) {
+            return "must be a number";
+        }
+        if (target == String.class) {
+            return "must be a string";
+        }
+        return "has an invalid value";
     }
 
     private static String fieldName(String parameterName, MessageSourceResolvable error) {

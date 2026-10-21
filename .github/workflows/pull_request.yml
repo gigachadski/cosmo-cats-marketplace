@@ -1,0 +1,49 @@
+name: Build and Test Coverage
+
+on:
+  pull_request:
+    branches:
+      - main
+      - '**'
+
+jobs:
+  build:
+    name: Build and Test
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout the code
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Set up JDK 21 (the project compiles with --release 21)
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      # Set up Gradle with dependency caching
+      # (gradle/gradle-build-action is deprecated and no longer runs tasks by itself)
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Grant execute permission for Gradlew
+        run: chmod +x ./gradlew
+
+      # Run Gradle build: unit tests, integration tests (*IT), JaCoCo report and coverage verification
+      - name: Build with Gradle
+        run: ./gradlew build
+
+      # Publish the test summary produced by gradle/test.gradle
+      - name: Test summary
+        if: always()
+        run: cat build/reports/tests/test-summary.md >> "$GITHUB_STEP_SUMMARY" || true
+
+      # Upload the JaCoCo test coverage report (upload-artifact@v3 is retired by GitHub)
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-coverage-report
+          path: build/reports/coverage/

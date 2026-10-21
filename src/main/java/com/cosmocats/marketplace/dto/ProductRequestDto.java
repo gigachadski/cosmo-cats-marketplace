@@ -4,6 +4,7 @@ import com.cosmocats.marketplace.validation.CosmicWordCheck;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
@@ -31,7 +32,7 @@ public record ProductRequestDto(
         @NotNull(message = "is required")
         Long categoryId,
 
-        @NotNull(message = "is required")
+        @NotBlank(message = "is required")
         @Email(message = "must be a valid email address")
         String sellerEmail) {
 }

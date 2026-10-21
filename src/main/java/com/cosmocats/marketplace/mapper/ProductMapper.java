@@ -5,14 +5,12 @@ import com.cosmocats.marketplace.domain.Product;
 import com.cosmocats.marketplace.dto.CategoryDto;
 import com.cosmocats.marketplace.dto.ProductRequestDto;
 import com.cosmocats.marketplace.dto.ProductResponseDto;
-import org.springframework.stereotype.Component;
 
 /**
  * Hand-written mapper between the Product domain model and its DTOs.
  * Kept as the reference implementation; the service now uses the generated
- * {@link ProductMapStructMapper}, which replaces this boilerplate.
+ * {@link ProductMapStructMapper}, which replaces this boilerplate, so this class is not a Spring bean.
  */
-@Component
 public class ProductMapper {
 
     public ProductResponseDto toDto(Product product) {

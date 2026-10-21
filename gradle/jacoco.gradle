@@ -1,0 +1,81 @@
+apply plugin: 'jacoco'
+
+jacoco {
+    toolVersion = "0.8.15"
+    reportsDirectory = layout.buildDirectory.dir("reports/coverage")
+}
+
+tasks.register('integrationTest', Test) {
+    description = "Defines the test type 'integrationTest' for thin integration test"
+}
+
+jacocoTestCoverageVerification {
+    description = "Verifies coverage based on defined thresholds on all tests (incl. Unit and Integration))"
+    executionData = fileTree(layout.buildDirectory).include("/jacoco/*.exec")
+    violationRules {
+        rule {
+            enabled = true
+            failOnViolation = true
+            element = 'SOURCEFILE'
+            excludes = filesExcludedFromCoverage
+            limit {
+                counter = 'LINE'
+                minimum = minimumCoveragePerFile
+            }
+        }
+    }
+}
+
+jacocoTestReport {
+    group = "Reporting"
+    description = "Creates the result report of the Unit Test"
+    getExecutionData().setFrom(fileTree(layout.buildDirectory).include("/jacoco/*.exec"))
+    reports {
+        csv.required = true
+        xml.required = false
+        html.required = true
+        xml.outputLocation = layout.buildDirectory.file("reports/coverage/coverage.xml").get().asFile
+        html.outputLocation = layout.buildDirectory.dir("reports/coverage")
+        csv.outputLocation = layout.buildDirectory.file("reports/coverage/coverage.csv").get().asFile
+    }
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: filesExcludedFromCoverage)
+        }))
+    }
+    finalizedBy jacocoTestCoverageVerification
+}
+
+tasks.register('jacocoIntegrationTestReport', JacocoReport) {
+    dependsOn integrationTest
+    group = "Reporting"
+    description = "Creates the result report of the (Thin) Integration Test"
+    getExecutionData().setFrom(fileTree(layout.buildDirectory).include("/jacoco/integrationTest.exec"))
+    classDirectories.setFrom(tasks.jacocoTestReport.classDirectories)
+    reports {
+        csv.required = true
+        xml.required = false
+        html.required = true
+        xml.outputLocation = layout.buildDirectory.file("reports/coverage/coverageIT.xml").get().asFile
+        html.outputLocation = layout.buildDirectory.dir("reports/coverage")
+        csv.outputLocation = layout.buildDirectory.file("reports/coverage/coverageIT.csv").get().asFile
+    }
+}
+
+test {
+    filter {
+        excludeTestsMatching '*IT'
+    }
+    finalizedBy jacocoTestReport // report is always generated after tests run
+}
+
+integrationTest {
+    maxParallelForks = 4
+    filter {
+        includeTestsMatching '*IT'
+    }
+    finalizedBy tasks.jacocoIntegrationTestReport // report is always generated after tests run
+}
+
+jacocoTestCoverageVerification.dependsOn jacocoTestReport
+test.dependsOn jacocoIntegrationTestReport
