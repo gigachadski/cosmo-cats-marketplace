@@ -1,0 +1,26 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-create-sequences
+      author: cosmo-cats
+      comment: One id sequence per table; incrementBy matches the JPA allocationSize
+      changes:
+        - createSequence:
+            sequenceName: category_seq
+            startValue: 1
+            incrementBy: 50
+        - createSequence:
+            sequenceName: product_seq
+            startValue: 1
+            incrementBy: 50
+        - createSequence:
+            sequenceName: customer_seq
+            startValue: 1
+            incrementBy: 50
+        - createSequence:
+            sequenceName: orders_seq
+            startValue: 1
+            incrementBy: 50
+        - createSequence:
+            sequenceName: order_item_seq
+            startValue: 1
+            incrementBy: 50

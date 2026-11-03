@@ -1,0 +1,23 @@
+databaseChangeLog:
+  - changeSet:
+      id: 006-seed-demo-data
+      author: cosmo-cats
+      context: demo
+      comment: Demo catalogue for local runs; tests run with the "test" context and start with an empty database
+      changes:
+        - sql:
+            sql: |
+              INSERT INTO category (id, name) VALUES
+                (nextval('category_seq'), 'Space Food'),
+                (nextval('category_seq'), 'Zero-G Toys'),
+                (nextval('category_seq'), 'Orbital Furniture');
+              INSERT INTO product (id, name, description, price, category_id, seller_email)
+              SELECT nextval('product_seq'), p.name, p.description, p.price, c.id, p.seller_email
+              FROM (VALUES
+                ('Star Tuna Can', 'Tuna caught near Sirius', 9.99, 'Space Food', 'tuna@cosmocats.space'),
+                ('Galaxy Yarn Ball', 'Glows in the dark of deep space', 4.50, 'Zero-G Toys', 'yarn@cosmocats.space'),
+                ('Comet Scratching Post', 'Fast as a comet, sturdy as a planet', 49.90, 'Orbital Furniture', 'post@cosmocats.space'),
+                ('Nebula Catnip', 'Harvested in the Crab Nebula', 12.00, 'Space Food', 'catnip@cosmocats.space'),
+                ('Moon Laser Pointer', 'The red dot visible from orbit', 19.95, 'Zero-G Toys', 'laser@cosmocats.space')
+              ) AS p(name, description, price, category, seller_email)
+              JOIN category c ON c.name = p.category;

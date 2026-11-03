@@ -1,0 +1,10 @@
+databaseChangeLog:
+  - changeSet:
+      id: 003-unique-product-name-in-category
+      author: cosmo-cats
+      comment: A product name must be unique within its category
+      changes:
+        - addUniqueConstraint:
+            tableName: product
+            columnNames: category_id, name
+            constraintName: uq_product_category_name
