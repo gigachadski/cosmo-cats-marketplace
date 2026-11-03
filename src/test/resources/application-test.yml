@@ -1,0 +1,4 @@
+spring:
+  liquibase:
+    # "test" context: schema only, no demo catalogue
+    contexts: test

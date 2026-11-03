@@ -5,7 +5,7 @@ import com.cosmocats.marketplace.dto.ConvertedPriceDto;
 import com.cosmocats.marketplace.dto.PageResponse;
 import com.cosmocats.marketplace.dto.ProductRequestDto;
 import com.cosmocats.marketplace.dto.ProductResponseDto;
-import com.cosmocats.marketplace.exception.CategoryNotFoundException;
+import com.cosmocats.marketplace.exception.UnknownCategoryException;
 import com.cosmocats.marketplace.exception.ExternalServiceException;
 import com.cosmocats.marketplace.exception.ProductNotFoundException;
 import com.cosmocats.marketplace.exception.UnsupportedCurrencyException;
@@ -269,7 +269,7 @@ class ProductControllerTest {
 
         @Test
         void unknownCategoryIsUnprocessable() throws Exception {
-            when(productService.createProduct(any())).thenThrow(new CategoryNotFoundException(42L));
+            when(productService.createProduct(any())).thenThrow(new UnknownCategoryException(42L));
 
             expectProblem(postProduct(validBody()), 422, "category-not-found", PRODUCTS)
                     .andExpect(jsonPath("$.detail").value("Category with id 42 does not exist"));

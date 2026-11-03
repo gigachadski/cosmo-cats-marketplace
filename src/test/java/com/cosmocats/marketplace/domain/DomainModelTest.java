@@ -9,6 +9,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -20,6 +21,7 @@ class DomainModelTest {
     private static final Product CATNIP = new Product(2L, "Nebula Catnip", null, new BigDecimal("0.20"), FOOD, "a@b.space");
     private static final Instant NOW = Instant.parse("2026-10-10T10:00:00Z");
     private static final String CUSTOMER = "cat@cosmocats.space";
+    private static final UUID ORDER_NUMBER = UUID.fromString("7c6f2a4e-1b9d-4c3e-8f5a-2d1e0b9c8a7f");
 
     @Nested
     class ProductInvariants {
@@ -52,8 +54,8 @@ class DomainModelTest {
         }
 
         @Test
-        void categoryRequiresIdAndName() {
-            assertThatThrownBy(() -> new Category(null, "Food")).isInstanceOf(NullPointerException.class);
+        void categoryRequiresNameButNotIdBeforeSaving() {
+            assertThat(new Category(null, "Food").withId(3L)).isEqualTo(new Category(3L, "Food"));
             assertThatThrownBy(() -> new Category(1L, null)).isInstanceOf(NullPointerException.class);
         }
     }
@@ -122,8 +124,10 @@ class DomainModelTest {
 
         @Test
         void checkoutCreatesNewOrderWithSnapshotOfPrices() {
-            Order order = Cart.empty(1L, CUSTOMER).addProduct(CATNIP, 2).checkout(10L, NOW);
+            Order order = Cart.empty(1L, CUSTOMER).addProduct(CATNIP, 2).checkout(ORDER_NUMBER, NOW);
 
+            assertThat(order.orderNumber()).isEqualTo(ORDER_NUMBER);
+            assertThat(order.id()).as("not saved yet").isNull();
             assertThat(order.status()).isEqualTo(OrderStatus.NEW);
             assertThat(order.createdAt()).isEqualTo(NOW);
             assertThat(order.items()).containsExactly(new OrderItem(2L, "Nebula Catnip", new BigDecimal("0.20"), 2));
@@ -132,7 +136,7 @@ class DomainModelTest {
 
         @Test
         void emptyCartCannotBeCheckedOut() {
-            assertThatThrownBy(() -> Cart.empty(1L, CUSTOMER).checkout(10L, NOW))
+            assertThatThrownBy(() -> Cart.empty(1L, CUSTOMER).checkout(ORDER_NUMBER, NOW))
                     .isInstanceOf(IllegalStateException.class);
         }
     }
@@ -141,7 +145,7 @@ class DomainModelTest {
     class OrderBehaviour {
 
         private Order newOrder() {
-            return Order.place(10L, CUSTOMER, List.of(new OrderItem(1L, "Star Tuna", new BigDecimal("2.50"), 2)), NOW);
+            return Order.place(ORDER_NUMBER, CUSTOMER, List.of(new OrderItem(1L, "Star Tuna", new BigDecimal("2.50"), 2)), NOW);
         }
 
         @Test
@@ -171,7 +175,7 @@ class DomainModelTest {
         @Test
         void itemsAreCopiedDefensively() {
             List<OrderItem> items = new ArrayList<>(List.of(new OrderItem(1L, "Star", BigDecimal.ONE, 1)));
-            Order order = Order.place(1L, CUSTOMER, items, NOW);
+            Order order = Order.place(ORDER_NUMBER, CUSTOMER, items, NOW);
             items.clear();
 
             assertThat(order.items()).hasSize(1);
@@ -179,14 +183,15 @@ class DomainModelTest {
 
         @Test
         void orderRequiresItemsAndMandatoryFields() {
-            assertThatThrownBy(() -> Order.place(1L, CUSTOMER, List.of(), NOW))
+            assertThatThrownBy(() -> Order.place(ORDER_NUMBER, CUSTOMER, List.of(), NOW))
                     .isInstanceOf(IllegalArgumentException.class);
-            assertThatThrownBy(() -> Order.place(1L, CUSTOMER, null, NOW))
+            assertThatThrownBy(() -> Order.place(ORDER_NUMBER, CUSTOMER, null, NOW))
                     .isInstanceOf(IllegalArgumentException.class);
             List<OrderItem> items = List.of(new OrderItem(1L, "Star", BigDecimal.ONE, 1));
-            assertThatThrownBy(() -> Order.place(1L, null, items, NOW)).isInstanceOf(NullPointerException.class);
-            assertThatThrownBy(() -> Order.place(1L, CUSTOMER, items, null)).isInstanceOf(NullPointerException.class);
-            assertThatThrownBy(() -> new Order(1L, CUSTOMER, items, null, NOW)).isInstanceOf(NullPointerException.class);
+            assertThatThrownBy(() -> Order.place(ORDER_NUMBER, null, items, NOW)).isInstanceOf(NullPointerException.class);
+            assertThatThrownBy(() -> Order.place(ORDER_NUMBER, CUSTOMER, items, null)).isInstanceOf(NullPointerException.class);
+            assertThatThrownBy(() -> Order.place(null, CUSTOMER, items, NOW)).isInstanceOf(NullPointerException.class);
+            assertThatThrownBy(() -> new Order(1L, ORDER_NUMBER, CUSTOMER, items, null, NOW)).isInstanceOf(NullPointerException.class);
         }
 
         @Test
