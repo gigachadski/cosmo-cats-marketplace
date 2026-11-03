@@ -1,8 +1,9 @@
 package com.cosmocats.marketplace.exception;
 
-public class CategoryNotFoundException extends RuntimeException {
+/** A request references a category that does not exist (the request itself is unprocessable). */
+public class UnknownCategoryException extends RuntimeException {
 
-    public CategoryNotFoundException(Long id) {
+    public UnknownCategoryException(Long id) {
         super("Category with id " + id + " does not exist");
     }
 }
