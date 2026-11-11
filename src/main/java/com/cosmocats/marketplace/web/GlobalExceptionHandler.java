@@ -2,9 +2,15 @@ package com.cosmocats.marketplace.web;
 
 import com.cosmocats.marketplace.exception.CategoryNotFoundException;
 import com.cosmocats.marketplace.exception.ExternalServiceException;
+import com.cosmocats.marketplace.exception.InvalidOrderStatusTransitionException;
+import com.cosmocats.marketplace.exception.OrderNotFoundException;
 import com.cosmocats.marketplace.exception.ProductNotFoundException;
+import com.cosmocats.marketplace.exception.UnknownCategoryException;
+import com.cosmocats.marketplace.exception.UnknownProductException;
 import com.cosmocats.marketplace.exception.UnsupportedCurrencyException;
 import jakarta.servlet.http.HttpServletRequest;
+import org.hibernate.exception.ConstraintViolationException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.MessageSourceResolvable;
@@ -74,8 +80,52 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(CategoryNotFoundException.class)
     public ProblemDetail handleCategoryNotFound(CategoryNotFoundException ex, HttpServletRequest request) {
+        return problem(HttpStatus.NOT_FOUND, "category-not-found", "Category not found", ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(OrderNotFoundException.class)
+    public ProblemDetail handleOrderNotFound(OrderNotFoundException ex, HttpServletRequest request) {
+        return problem(HttpStatus.NOT_FOUND, "order-not-found", "Order not found", ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(UnknownCategoryException.class)
+    public ProblemDetail handleUnknownCategory(UnknownCategoryException ex, HttpServletRequest request) {
         return problem(HttpStatus.UNPROCESSABLE_CONTENT, "category-not-found", "Category not found",
                 ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(UnknownProductException.class)
+    public ProblemDetail handleUnknownProduct(UnknownProductException ex, HttpServletRequest request) {
+        return problem(HttpStatus.UNPROCESSABLE_CONTENT, "unknown-product", "Unknown product",
+                ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(InvalidOrderStatusTransitionException.class)
+    public ProblemDetail handleInvalidTransition(InvalidOrderStatusTransitionException ex, HttpServletRequest request) {
+        return problem(HttpStatus.CONFLICT, "invalid-order-status", "Invalid order status change",
+                ex.getMessage(), request);
+    }
+
+    /**
+     * A database constraint rejected the change. The constraint name tells which business
+     * rule was broken, so the client gets a precise message instead of a generic 500.
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ProblemDetail handleConstraintViolation(DataIntegrityViolationException ex, HttpServletRequest request) {
+        String constraint = constraintName(ex);
+        log.info("Constraint {} rejected {} {}", constraint, request.getMethod(), request.getRequestURI());
+        return switch (constraint) {
+            case "uq_product_category_name" -> problem(HttpStatus.CONFLICT, "product-already-exists",
+                    "Product already exists", "A product with this name already exists in the category.", request);
+            case "uq_category_name" -> problem(HttpStatus.CONFLICT, "category-already-exists",
+                    "Category already exists", "A category with this name already exists.", request);
+            case "fk_product_category" -> problem(HttpStatus.CONFLICT, "category-in-use",
+                    "Category in use", "The category still has products; move or delete them first.", request);
+            case "fk_order_item_product" -> problem(HttpStatus.CONFLICT, "product-in-use",
+                    "Product in use", "The product is part of existing orders and cannot be deleted.", request);
+            default -> problem(HttpStatus.CONFLICT, "conflict", "Conflict",
+                    "The request conflicts with existing data.", request);
+        };
     }
 
     @ExceptionHandler(UnsupportedCurrencyException.class)
@@ -167,6 +217,15 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     private static String requestUri(WebRequest request) {
         // Spring MVC always passes a ServletWebRequest to ResponseEntityExceptionHandler
         return ((ServletWebRequest) request).getRequest().getRequestURI();
+    }
+
+    private static String constraintName(Throwable ex) {
+        for (Throwable cause = ex; cause != null; cause = cause.getCause()) {
+            if (cause instanceof ConstraintViolationException violation && violation.getConstraintName() != null) {
+                return violation.getConstraintName().toLowerCase(Locale.ROOT);
+            }
+        }
+        return "";
     }
 
     private static String jsonPath(MismatchedInputException ex) {

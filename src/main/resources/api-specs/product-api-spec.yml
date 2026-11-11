@@ -61,6 +61,8 @@ paths:
                 $ref: "#/components/schemas/ProductResponse"
         "400":
           $ref: "#/components/responses/ValidationError"
+        "409":
+          $ref: "#/components/responses/ProductAlreadyExists"
         "422":
           $ref: "#/components/responses/CategoryNotFound"
         "500":
@@ -105,6 +107,8 @@ paths:
           $ref: "#/components/responses/ValidationError"
         "404":
           $ref: "#/components/responses/ProductNotFound"
+        "409":
+          $ref: "#/components/responses/ProductAlreadyExists"
         "422":
           $ref: "#/components/responses/CategoryNotFound"
         "500":
@@ -118,6 +122,8 @@ paths:
           description: Product deleted, no content
         "404":
           $ref: "#/components/responses/ProductNotFound"
+        "409":
+          $ref: "#/components/responses/ProductInUse"
         "500":
           $ref: "#/components/responses/InternalError"
 
@@ -395,6 +401,30 @@ components:
             status: 422
             detail: Category with id 42 does not exist
             instance: /api/v1/products
+    ProductAlreadyExists:
+      description: A product with this name already exists in the category (unique constraint on category and name)
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetail"
+          example:
+            type: https://cosmo-cats.market/errors/product-already-exists
+            title: Product already exists
+            status: 409
+            detail: A product with this name already exists in the category.
+            instance: /api/v1/products
+    ProductInUse:
+      description: The product is part of existing orders and cannot be deleted
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetail"
+          example:
+            type: https://cosmo-cats.market/errors/product-in-use
+            title: Product in use
+            status: 409
+            detail: The product is part of existing orders and cannot be deleted.
+            instance: /api/v1/products/1
     UnsupportedCurrency:
       description: The exchange rate service does not know the requested currency
       content:

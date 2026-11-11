@@ -7,7 +7,7 @@ import com.cosmocats.marketplace.dto.ConvertedPriceDto;
 import com.cosmocats.marketplace.dto.PageResponse;
 import com.cosmocats.marketplace.dto.ProductRequestDto;
 import com.cosmocats.marketplace.dto.ProductResponseDto;
-import com.cosmocats.marketplace.exception.CategoryNotFoundException;
+import com.cosmocats.marketplace.exception.UnknownCategoryException;
 import com.cosmocats.marketplace.exception.ProductNotFoundException;
 import com.cosmocats.marketplace.mapper.ProductMapStructMapper;
 import com.cosmocats.marketplace.repository.CategoryRepository;
@@ -15,12 +15,15 @@ import com.cosmocats.marketplace.repository.ProductRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
 
 @Service
+@Transactional(readOnly = true)
 public class ProductService {
 
     private static final Logger log = LoggerFactory.getLogger(ProductService.class);
@@ -40,6 +43,7 @@ public class ProductService {
         this.exchangeRateClient = exchangeRateClient;
     }
 
+    @Transactional
     public ProductResponseDto createProduct(ProductRequestDto request) {
         Product product = productMapper.toDomain(request, findCategory(request.categoryId()));
         Product saved = productRepository.save(product);
@@ -52,12 +56,13 @@ public class ProductService {
     }
 
     public PageResponse<ProductResponseDto> getProducts(int page, int size) {
-        List<ProductResponseDto> content = productRepository.findAll((long) page * size, size).stream()
+        List<ProductResponseDto> content = productRepository.findPage(page, size).stream()
                 .map(productMapper::toDto)
                 .toList();
         return new PageResponse<>(content, page, size, productRepository.count());
     }
 
+    @Transactional
     public ProductResponseDto updateProduct(Long id, ProductRequestDto request) {
         if (!productRepository.existsById(id)) {
             throw new ProductNotFoundException(id);
@@ -68,6 +73,7 @@ public class ProductService {
         return productMapper.toDto(saved);
     }
 
+    @Transactional
     public void deleteProduct(Long id) {
         if (!productRepository.deleteById(id)) {
             throw new ProductNotFoundException(id);
@@ -75,6 +81,8 @@ public class ProductService {
         log.info("Deleted product id={}", id);
     }
 
+    // no transaction: do not hold a database connection while waiting for the exchange service
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public ConvertedPriceDto convertPrice(Long id, String currency) {
         Product product = findProduct(id);
         BigDecimal rate = exchangeRateClient.getRate(currency);
@@ -87,6 +95,6 @@ public class ProductService {
     }
 
     private Category findCategory(Long categoryId) {
-        return categoryRepository.findById(categoryId).orElseThrow(() -> new CategoryNotFoundException(categoryId));
+        return categoryRepository.findById(categoryId).orElseThrow(() -> new UnknownCategoryException(categoryId));
     }
 }

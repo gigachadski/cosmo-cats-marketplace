@@ -1,0 +1,10 @@
+databaseChangeLog:
+  - changeSet:
+      id: 005-unique-customer-email
+      author: cosmo-cats
+      comment: One customer account per email
+      changes:
+        - addUniqueConstraint:
+            tableName: customer
+            columnNames: email
+            constraintName: uq_customer_email

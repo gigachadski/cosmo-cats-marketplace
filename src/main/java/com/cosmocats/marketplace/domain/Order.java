@@ -1,22 +1,30 @@
 package com.cosmocats.marketplace.domain;
 
+import com.cosmocats.marketplace.exception.InvalidOrderStatusTransitionException;
+
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 
 /**
  * Order aggregate root. The total is always derived from the items, never stored,
  * and status changes go through {@link OrderStatus} transition rules.
+ * <p>
+ * {@code orderNumber} is the natural id: it is generated once, never changes and is what
+ * clients use to address an order, while {@code id} is the database surrogate key.
  */
 public record Order(
         Long id,
+        UUID orderNumber,
         String customerEmail,
         List<OrderItem> items,
         OrderStatus status,
         Instant createdAt) {
 
     public Order {
+        Objects.requireNonNull(orderNumber, "Order number must not be null");
         Objects.requireNonNull(customerEmail, "Customer email must not be null");
         Objects.requireNonNull(status, "Order status must not be null");
         Objects.requireNonNull(createdAt, "Order creation time must not be null");
@@ -26,8 +34,8 @@ public record Order(
         items = List.copyOf(items);
     }
 
-    public static Order place(Long id, String customerEmail, List<OrderItem> items, Instant now) {
-        return new Order(id, customerEmail, items, OrderStatus.NEW, now);
+    public static Order place(UUID orderNumber, String customerEmail, List<OrderItem> items, Instant now) {
+        return new Order(null, orderNumber, customerEmail, items, OrderStatus.NEW, now);
     }
 
     public BigDecimal total() {
@@ -54,8 +62,8 @@ public record Order(
 
     private Order transitionTo(OrderStatus target) {
         if (!status.canTransitionTo(target)) {
-            throw new IllegalStateException("Cannot change order status from " + status + " to " + target);
+            throw new InvalidOrderStatusTransitionException(status, target);
         }
-        return new Order(id, customerEmail, items, target, createdAt);
+        return new Order(id, orderNumber, customerEmail, items, target, createdAt);
     }
 }

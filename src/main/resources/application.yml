@@ -6,6 +6,19 @@ spring:
       # Jackson 3 sorts properties alphabetically by default; keep declaration order
       # so problem details read as type, title, status, detail, instance.
       sort-properties-alphabetically: false
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/cosmo_cats}
+    username: ${DB_USERNAME:cosmo}
+    password: ${DB_PASSWORD:cosmo}
+  jpa:
+    # Liquibase owns the schema; Hibernate only checks that the entities match it
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+    # "demo" loads the sample catalogue; tests use the "test" context and start empty
+    contexts: demo
 
 server:
   port: 8080

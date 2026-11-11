@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 
 /**
  * Shopping cart aggregate. Holds products with quantities and knows how to
@@ -57,7 +58,7 @@ public record Cart(Long id, String customerEmail, List<CartItem> items) {
         return items.isEmpty();
     }
 
-    public Order checkout(Long orderId, Instant now) {
+    public Order checkout(UUID orderNumber, Instant now) {
         if (isEmpty()) {
             throw new IllegalStateException("Cannot checkout an empty cart");
         }
@@ -68,6 +69,6 @@ public record Cart(Long id, String customerEmail, List<CartItem> items) {
                         item.product().price(),
                         item.quantity()))
                 .toList();
-        return Order.place(orderId, customerEmail, orderItems, now);
+        return Order.place(orderNumber, customerEmail, orderItems, now);
     }
 }

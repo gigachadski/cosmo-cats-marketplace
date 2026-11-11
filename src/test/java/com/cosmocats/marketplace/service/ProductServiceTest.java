@@ -8,7 +8,7 @@ import com.cosmocats.marketplace.dto.ConvertedPriceDto;
 import com.cosmocats.marketplace.dto.PageResponse;
 import com.cosmocats.marketplace.dto.ProductRequestDto;
 import com.cosmocats.marketplace.dto.ProductResponseDto;
-import com.cosmocats.marketplace.exception.CategoryNotFoundException;
+import com.cosmocats.marketplace.exception.UnknownCategoryException;
 import com.cosmocats.marketplace.exception.ExternalServiceException;
 import com.cosmocats.marketplace.exception.ProductNotFoundException;
 import com.cosmocats.marketplace.mapper.ProductMapStructMapper;
@@ -82,7 +82,7 @@ class ProductServiceTest {
             when(categoryRepository.findById(1L)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> productService.createProduct(REQUEST))
-                    .isInstanceOf(CategoryNotFoundException.class)
+                    .isInstanceOf(UnknownCategoryException.class)
                     .hasMessage("Category with id 1 does not exist");
             verify(productRepository, never()).save(any());
         }
@@ -118,7 +118,7 @@ class ProductServiceTest {
 
         @Test
         void requestsPageOffsetAndWrapsResultInEnvelope() {
-            when(productRepository.findAll(4L, 2)).thenReturn(List.of(STAR_TUNA));
+            when(productRepository.findPage(2, 2)).thenReturn(List.of(STAR_TUNA));
             when(productRepository.count()).thenReturn(5L);
 
             PageResponse<ProductResponseDto> page = productService.getProducts(2, 2);
@@ -131,22 +131,13 @@ class ProductServiceTest {
 
         @Test
         void emptyPageHasNoContentButKeepsTotal() {
-            when(productRepository.findAll(100L, 10)).thenReturn(List.of());
+            when(productRepository.findPage(10, 10)).thenReturn(List.of());
             when(productRepository.count()).thenReturn(5L);
 
             PageResponse<ProductResponseDto> page = productService.getProducts(10, 10);
 
             assertThat(page.content()).isEmpty();
             assertThat(page.totalElements()).isEqualTo(5L);
-        }
-
-        @Test
-        void offsetDoesNotOverflowForLargePages() {
-            when(productRepository.findAll((long) Integer.MAX_VALUE * 100, 100)).thenReturn(List.of());
-
-            productService.getProducts(Integer.MAX_VALUE, 100);
-
-            verify(productRepository).findAll((long) Integer.MAX_VALUE * 100, 100);
         }
     }
 
@@ -197,7 +188,7 @@ class ProductServiceTest {
             when(categoryRepository.findById(1L)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> productService.updateProduct(1L, REQUEST))
-                    .isInstanceOf(CategoryNotFoundException.class);
+                    .isInstanceOf(UnknownCategoryException.class);
             verify(productRepository, never()).update(any());
         }
     }

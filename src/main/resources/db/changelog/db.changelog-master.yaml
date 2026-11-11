@@ -1,0 +1,20 @@
+# Every schema change is a new, immutable changeset in changes/ - never edit an applied one.
+databaseChangeLog:
+  - include:
+      file: changes/001-create-sequences.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: changes/002-create-tables.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: changes/003-unique-product-name-in-category.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: changes/004-index-product-name.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: changes/005-unique-customer-email.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: changes/006-seed-demo-data.yaml
+      relativeToChangelogFile: true

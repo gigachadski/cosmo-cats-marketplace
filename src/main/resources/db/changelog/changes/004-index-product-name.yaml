@@ -1,0 +1,12 @@
+databaseChangeLog:
+  - changeSet:
+      id: 004-index-product-name
+      author: cosmo-cats
+      comment: Speeds up search and sorting by product name
+      changes:
+        - createIndex:
+            tableName: product
+            indexName: idx_product_name
+            columns:
+              - column:
+                  name: name
