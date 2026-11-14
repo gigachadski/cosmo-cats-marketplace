@@ -8,6 +8,7 @@ import com.cosmocats.marketplace.exception.ProductNotFoundException;
 import com.cosmocats.marketplace.exception.UnknownCategoryException;
 import com.cosmocats.marketplace.exception.UnknownProductException;
 import com.cosmocats.marketplace.exception.UnsupportedCurrencyException;
+import com.cosmocats.marketplace.featuretoggle.FeatureNotAvailableException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -81,6 +82,13 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(CategoryNotFoundException.class)
     public ProblemDetail handleCategoryNotFound(CategoryNotFoundException ex, HttpServletRequest request) {
         return problem(HttpStatus.NOT_FOUND, "category-not-found", "Category not found", ex.getMessage(), request);
+    }
+
+    /** A switched-off feature looks like a missing resource to the client. */
+    @ExceptionHandler(FeatureNotAvailableException.class)
+    public ProblemDetail handleFeatureNotAvailable(FeatureNotAvailableException ex, HttpServletRequest request) {
+        return problem(HttpStatus.NOT_FOUND, "feature-not-available", "Feature not available",
+                ex.getMessage(), request);
     }
 
     @ExceptionHandler(OrderNotFoundException.class)
