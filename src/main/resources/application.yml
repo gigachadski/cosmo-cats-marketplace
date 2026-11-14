@@ -20,6 +20,13 @@ spring:
     # "demo" loads the sample catalogue; tests use the "test" context and start empty
     contexts: demo
 
+# Feature toggles: a disabled feature answers 404 "feature-not-available"
+feature:
+  cosmoCats:
+    enabled: true
+  kittyProducts:
+    enabled: false
+
 server:
   port: 8080
 
