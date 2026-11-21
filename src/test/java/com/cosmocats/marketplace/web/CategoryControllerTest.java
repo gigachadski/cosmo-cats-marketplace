@@ -4,6 +4,7 @@ import com.cosmocats.marketplace.dto.CategoryDto;
 import com.cosmocats.marketplace.dto.CategoryRequestDto;
 import com.cosmocats.marketplace.dto.ProductSummaryDto;
 import com.cosmocats.marketplace.exception.CategoryNotFoundException;
+import com.cosmocats.marketplace.security.WithSecurityAsAdmin;
 import com.cosmocats.marketplace.service.CategoryService;
 import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.Test;
@@ -34,6 +35,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+@WithSecurityAsAdmin
 @WebMvcTest(CategoryController.class)
 class CategoryControllerTest {
 

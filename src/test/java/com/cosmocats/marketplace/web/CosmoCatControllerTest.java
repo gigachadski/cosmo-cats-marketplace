@@ -4,6 +4,7 @@ import com.cosmocats.marketplace.dto.CosmoCatDto;
 import com.cosmocats.marketplace.dto.KittyProductDto;
 import com.cosmocats.marketplace.featuretoggle.Feature;
 import com.cosmocats.marketplace.featuretoggle.FeatureNotAvailableException;
+import com.cosmocats.marketplace.security.WithSecurityAsAdmin;
 import com.cosmocats.marketplace.service.CosmoCatService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +19,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+@WithSecurityAsAdmin
 @WebMvcTest(CosmoCatController.class)
 class CosmoCatControllerTest {
 

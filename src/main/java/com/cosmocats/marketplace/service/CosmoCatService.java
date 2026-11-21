@@ -4,12 +4,14 @@ import com.cosmocats.marketplace.dto.CosmoCatDto;
 import com.cosmocats.marketplace.dto.KittyProductDto;
 import com.cosmocats.marketplace.featuretoggle.Feature;
 import com.cosmocats.marketplace.featuretoggle.FeatureToggle;
+import com.cosmocats.marketplace.security.UserOrAdmin;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 /** Space cat crew and kitten goods; each method is behind its own feature flag. */
 @Service
+@UserOrAdmin
 public class CosmoCatService {
 
     private static final List<CosmoCatDto> COSMO_CATS = List.of(

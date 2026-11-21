@@ -7,6 +7,8 @@ import com.cosmocats.marketplace.dto.ProductSummaryDto;
 import com.cosmocats.marketplace.exception.CategoryNotFoundException;
 import com.cosmocats.marketplace.repository.CategoryRepository;
 import com.cosmocats.marketplace.repository.ProductRepository;
+import com.cosmocats.marketplace.security.AdminOnly;
+import com.cosmocats.marketplace.security.UserOrAdmin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -15,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 @Service
+@UserOrAdmin
 @Transactional(readOnly = true)
 public class CategoryService {
 
@@ -41,6 +44,7 @@ public class CategoryService {
         return productRepository.findSummariesByCategory(id);
     }
 
+    @AdminOnly
     @Transactional
     public CategoryDto createCategory(CategoryRequestDto request) {
         Category saved = categoryRepository.save(new Category(null, request.name().strip()));
@@ -48,6 +52,7 @@ public class CategoryService {
         return toDto(saved);
     }
 
+    @AdminOnly
     @Transactional
     public CategoryDto updateCategory(Long id, CategoryRequestDto request) {
         Category updated = categoryRepository.update(new Category(id, request.name().strip()))
@@ -56,6 +61,7 @@ public class CategoryService {
         return toDto(updated);
     }
 
+    @AdminOnly
     @Transactional
     public void deleteCategory(Long id) {
         if (!categoryRepository.deleteById(id)) {

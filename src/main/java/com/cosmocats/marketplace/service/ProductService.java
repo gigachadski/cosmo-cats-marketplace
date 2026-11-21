@@ -12,6 +12,8 @@ import com.cosmocats.marketplace.exception.ProductNotFoundException;
 import com.cosmocats.marketplace.mapper.ProductMapStructMapper;
 import com.cosmocats.marketplace.repository.CategoryRepository;
 import com.cosmocats.marketplace.repository.ProductRepository;
+import com.cosmocats.marketplace.security.AdminOnly;
+import com.cosmocats.marketplace.security.UserOrAdmin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -23,6 +25,7 @@ import java.math.RoundingMode;
 import java.util.List;
 
 @Service
+@UserOrAdmin
 @Transactional(readOnly = true)
 public class ProductService {
 
@@ -43,6 +46,7 @@ public class ProductService {
         this.exchangeRateClient = exchangeRateClient;
     }
 
+    @AdminOnly
     @Transactional
     public ProductResponseDto createProduct(ProductRequestDto request) {
         Product product = productMapper.toDomain(request, findCategory(request.categoryId()));
@@ -62,6 +66,7 @@ public class ProductService {
         return new PageResponse<>(content, page, size, productRepository.count());
     }
 
+    @AdminOnly
     @Transactional
     public ProductResponseDto updateProduct(Long id, ProductRequestDto request) {
         if (!productRepository.existsById(id)) {
@@ -73,6 +78,7 @@ public class ProductService {
         return productMapper.toDto(saved);
     }
 
+    @AdminOnly
     @Transactional
     public void deleteProduct(Long id) {
         if (!productRepository.deleteById(id)) {

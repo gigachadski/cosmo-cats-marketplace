@@ -1,8 +1,10 @@
 package com.cosmocats.marketplace;
 
+import com.cosmocats.marketplace.security.ApiKeyAuthenticationFilter;
 import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasSize;
@@ -14,6 +16,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /** Categories, orders and the sales report, end to end against PostgreSQL. */
+@WithMockUser(username = "luna-admin", roles = "ADMIN")
 class MarketplaceApiIT extends AbstractIt {
 
     private static final String CATEGORIES = "/api/v1/categories";
@@ -119,7 +122,7 @@ class MarketplaceApiIT extends AbstractIt {
         mockMvc.perform(post(ORDERS + "/" + placeOrder("a@cosmocats.space", tuna, 1) + "/pay"));
         placeOrder("c@cosmocats.space", milk, 100); // never paid: not a purchase
 
-        mockMvc.perform(get("/api/v1/reports/top-products").param("limit", "5"))
+        mockMvc.perform(get("/api/v1/reports/top-products").header(ApiKeyAuthenticationFilter.HEADER, COMMITTEE_API_KEY).param("limit", "5"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[*].productName").value(contains("Nebula Catnip", "Star Tuna Can")))
                 .andExpect(jsonPath("$[0].totalQuantity").value(5))

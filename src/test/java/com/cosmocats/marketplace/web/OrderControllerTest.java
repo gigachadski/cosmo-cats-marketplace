@@ -7,6 +7,8 @@ import com.cosmocats.marketplace.dto.ProductSalesDto;
 import com.cosmocats.marketplace.exception.InvalidOrderStatusTransitionException;
 import com.cosmocats.marketplace.exception.OrderNotFoundException;
 import com.cosmocats.marketplace.exception.UnknownProductException;
+import com.cosmocats.marketplace.security.ApiKeyAuthenticationFilter;
+import com.cosmocats.marketplace.security.WithSecurityAsAdmin;
 import com.cosmocats.marketplace.service.OrderAction;
 import com.cosmocats.marketplace.service.OrderService;
 import com.cosmocats.marketplace.service.ReportService;
@@ -37,10 +39,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+@WithSecurityAsAdmin
 @WebMvcTest({OrderController.class, ReportController.class})
 class OrderControllerTest {
 
     private static final String ORDERS = "/api/v1/orders";
+    private static final String API_KEY = "dev-committee-key-change-me";
     private static final String ERRORS = "https://cosmo-cats.market/errors/";
     private static final UUID NUMBER = UUID.fromString("0f8fad5b-d9cb-469f-a165-70867728950e");
     private static final String VALID_ORDER = """
@@ -167,7 +171,7 @@ class OrderControllerTest {
         when(reportService.getTopSellingProducts(10))
                 .thenReturn(List.of(new ProductSalesDto(1L, "Star Tuna", 7, new BigDecimal("17.50"))));
 
-        mockMvc.perform(get("/api/v1/reports/top-products"))
+        mockMvc.perform(get("/api/v1/reports/top-products").header(ApiKeyAuthenticationFilter.HEADER, API_KEY))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].productName").value("Star Tuna"))
                 .andExpect(jsonPath("$[0].totalQuantity").value(7));
@@ -176,7 +180,7 @@ class OrderControllerTest {
     @ParameterizedTest(name = "limit={0}")
     @ValueSource(strings = {"0", "101"})
     void reportLimitIsValidated(String limit) throws Exception {
-        mockMvc.perform(get("/api/v1/reports/top-products").param("limit", limit))
+        mockMvc.perform(get("/api/v1/reports/top-products").header(ApiKeyAuthenticationFilter.HEADER, API_KEY).param("limit", limit))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors[0].field").value("limit"));
         verifyNoInteractions(reportService);

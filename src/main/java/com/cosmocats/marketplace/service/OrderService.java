@@ -11,8 +11,11 @@ import com.cosmocats.marketplace.exception.OrderNotFoundException;
 import com.cosmocats.marketplace.exception.UnknownProductException;
 import com.cosmocats.marketplace.repository.OrderRepository;
 import com.cosmocats.marketplace.repository.ProductRepository;
+import com.cosmocats.marketplace.security.AdminOnly;
+import com.cosmocats.marketplace.security.UserOrAdmin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +26,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @Service
+@UserOrAdmin
 @Transactional(readOnly = true)
 public class OrderService {
 
@@ -61,6 +65,8 @@ public class OrderService {
         return toDto(findOrder(orderNumber));
     }
 
+    /** A customer may pay for or cancel an order; shipping and delivery are done by administrators. */
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('USER') and (#action.name() == 'PAY' or #action.name() == 'CANCEL'))")
     @Transactional
     public OrderResponseDto changeStatus(UUID orderNumber, OrderAction action) {
         Order changed = action.applyTo(findOrder(orderNumber));
@@ -70,6 +76,7 @@ public class OrderService {
         return toDto(saved);
     }
 
+    @AdminOnly
     @Transactional
     public void deleteOrder(UUID orderNumber) {
         if (!orderRepository.deleteByOrderNumber(orderNumber)) {
