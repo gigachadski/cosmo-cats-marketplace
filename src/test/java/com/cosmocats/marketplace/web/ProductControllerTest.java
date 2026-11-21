@@ -5,10 +5,11 @@ import com.cosmocats.marketplace.dto.ConvertedPriceDto;
 import com.cosmocats.marketplace.dto.PageResponse;
 import com.cosmocats.marketplace.dto.ProductRequestDto;
 import com.cosmocats.marketplace.dto.ProductResponseDto;
-import com.cosmocats.marketplace.exception.UnknownCategoryException;
 import com.cosmocats.marketplace.exception.ExternalServiceException;
 import com.cosmocats.marketplace.exception.ProductNotFoundException;
+import com.cosmocats.marketplace.exception.UnknownCategoryException;
 import com.cosmocats.marketplace.exception.UnsupportedCurrencyException;
+import com.cosmocats.marketplace.security.WithSecurityAsAdmin;
 import com.cosmocats.marketplace.service.ProductService;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -56,6 +57,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Web layer only: the service is mocked, so these tests check request validation,
  * HTTP statuses and RFC 9457 problem responses.
  */
+@WithSecurityAsAdmin
 @WebMvcTest(ProductController.class)
 class ProductControllerTest {
 

@@ -1,0 +1,32 @@
+### Manual requests for IntelliJ HTTP Client. Start dependencies first: docker compose up -d
+# Demo tokens are signed by the dev key whose public part is wiremock/mappings/jwks.json.
+# They are valid until 2027-12-31 and only work against the local WireMock JWKS.
+@host = http://localhost:8080
+@userToken = eyJraWQiOiJjb3Ntby1jYXRzLWRldi1rZXkiLCJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJodHRwczovL2F1dGguY29zbW8tY2F0cy5tYXJrZXQiLCJzdWIiOiJjYXB0YWluLXdoaXNrZXJzIiwiZXhwIjoxODMwMjk3NTk5LCJpYXQiOjE3OTQ2MTQ0MDAsInJvbGVzIjpbIlVTRVIiXX0.fVUS7VLI9XXMVZuvfaJARTciBMrlzlVRDq0cP0aLPTJw3ofpS-6qgQoTCA_XJYfMeignBQe4nAholx3YMYJfmne4AC1Ab815heTm3wL8YTg2PgiFxGaQePQxECq7nrC6cy_uRRBaW-0TNi2lSidjK3UdA7fsTRzdBZEtoX99b0C7c3pRmxFa4xNPx7mAxaBCuah6kM6CcgEs_-d6EBQtD8GryX7tgbPePcdMqA-JYaPF8qH3hZgdLC2ks_6k3IKWA-yD82Y_VKCvMscmNO3ozUpqWt3-4UGPCyPPYxgWNC020JcfW9izqPb3LNYnjtbJn9RQnswX77d1Wr69D51u9Q
+@adminToken = eyJraWQiOiJjb3Ntby1jYXRzLWRldi1rZXkiLCJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJodHRwczovL2F1dGguY29zbW8tY2F0cy5tYXJrZXQiLCJzdWIiOiJsdW5hLWFkbWluIiwiZXhwIjoxODMwMjk3NTk5LCJpYXQiOjE3OTQ2MTQ0MDAsInJvbGVzIjpbIkFETUlOIl19.fXD3iUr9lSoFybPaiyUVcOiCX1ZxWt6qgJRAW-ckUQjGiNIgHuZu3QtdU_coJI8aN6RpNKCh87qD7bOQvEzWdmatv0Wi-StuW1PZGlbG4TtXVjSsoYd1_YLDaAc4mml3ig-zCZs5NBno61ta2_0fikvk3J1hkd5gvZNXfoflxhwCQ2hVKyW7WhBLpt2U1da6LqcpQuyI97-I6Q9LOmdNAFn_VLcx5CtpxMob1QrqPAkSvrGJiXOExlia14Ta5FuncQsdlONqOkdPkksuzTYtjm5f7Vn2i92MBKf8sZ1VeAyIY8RaXNPuurW1Qx_2_4es3jeipXQsrXJU1VgWJuLvxQ
+@apiKey = dev-committee-key-change-me
+
+### No token -> 401
+GET {{host}}/api/v1/products
+
+### USER reads the catalogue -> 200
+GET {{host}}/api/v1/products?page=0&size=5
+Authorization: Bearer {{userToken}}
+
+### USER cannot change the catalogue -> 403
+POST {{host}}/api/v1/categories
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{"name": "Comet Snacks"}
+
+### ADMIN changes the catalogue -> 201
+POST {{host}}/api/v1/categories
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{"name": "Comet Snacks"}
+
+### Reports need the API key -> 200 (401 without it)
+GET {{host}}/api/v1/reports/top-products
+X-API-Key: {{apiKey}}

@@ -21,7 +21,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /**
  * Base class for thin integration tests: the whole application against PostgreSQL in
- * Testcontainers, with the third-party exchange rate service replaced by a WireMock stub.
+ * Testcontainers, with the third-party exchange rate service and the JWKS of the authorization server
+ * replaced by WireMock stubs.
  * The context (and the container) is shared by all subclasses; tables are emptied before each test.
  */
 @SpringBootTest
@@ -29,6 +30,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import(TestcontainersConfiguration.class)
 @ActiveProfiles("test")
 public abstract class AbstractIt {
+
+    /** Default key of the committee client from application.yml. */
+    protected static final String COMMITTEE_API_KEY = "dev-committee-key-change-me";
 
     @RegisterExtension
     protected static WireMockExtension exchangeService = WireMockExtension.newInstance()
@@ -38,6 +42,8 @@ public abstract class AbstractIt {
     @DynamicPropertySource
     static void exchangeServiceProperties(DynamicPropertyRegistry registry) {
         registry.add("cosmo.clients.exchange-rate.base-url", exchangeService::baseUrl);
+        registry.add("spring.security.oauth2.resourceserver.jwt.jwk-set-uri",
+                () -> exchangeService.baseUrl() + "/.well-known/jwks.json");
     }
 
     @Autowired
