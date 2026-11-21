@@ -3,6 +3,7 @@ package com.cosmocats.marketplace.service;
 import com.cosmocats.marketplace.domain.OrderStatus;
 import com.cosmocats.marketplace.dto.ProductSalesDto;
 import com.cosmocats.marketplace.repository.OrderRepository;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,6 +13,7 @@ import java.util.Set;
 
 /** Reports for the Intergalactic Committee. */
 @Service
+@PreAuthorize("hasAnyRole('REPORTS', 'ADMIN')")
 @Transactional(readOnly = true)
 public class ReportService {
 

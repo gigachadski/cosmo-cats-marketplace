@@ -15,6 +15,14 @@ spring:
     hibernate:
       ddl-auto: validate
     open-in-view: false
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Public keys of the authorization server (WireMock in docker-compose serves a JWKS file)
+          jwk-set-uri: ${JWK_SET_URI:http://localhost:8089/.well-known/jwks.json}
+          # Tokens from any other issuer are rejected
+          issuer-uri: ${JWT_ISSUER:https://auth.cosmo-cats.market}
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.yaml
     # "demo" loads the sample catalogue; tests use the "test" context and start empty
@@ -31,6 +39,10 @@ server:
   port: 8080
 
 cosmo:
+  security:
+    # Machine clients of the reports API: name -> key, sent in the X-API-Key header
+    api-keys:
+      committee: ${COMMITTEE_API_KEY:dev-committee-key-change-me}
   clients:
     exchange-rate:
       base-url: http://localhost:8089
